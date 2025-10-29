@@ -37,15 +37,13 @@ def find_nearest(
     target_gateway = ""
     target_edge = ()
     visited = dict.fromkeys(graph.keys(), -1)
+    visited[start_node] = 0
     parent = dict.fromkeys(graph.keys(), None)
     queue = deque()
     queue.append((start_node, 0))
     min_distance = float("inf")
     while queue:
         current, depth = queue.popleft()
-        if visited[current] != -1:
-            continue
-        visited[current] = depth
 
         for neighbor in sorted(graph.get(current, [])):
             if is_blocked_edge((current, neighbor), blocked_edges):
@@ -56,8 +54,10 @@ def find_nearest(
                     target_gateway = neighbor
                     target_edge = (current, neighbor)
                     parent[neighbor] = current
+                    visited[neighbor] = depth + 1
             elif visited[neighbor] == -1:
                 parent[neighbor] = current
+                visited[neighbor] = depth + 1
                 queue.append((neighbor, depth + 1))
 
     return target_edge, parent
