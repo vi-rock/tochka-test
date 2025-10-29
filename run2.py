@@ -79,6 +79,8 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
     virus_node = "a"
     while True:
         edge, _ = find_nearest(virus_node, graph, blocked_edges_set)
+        if not edge:
+            break
         blocked_edges_set.add(edge)
         blocked_edges.append(edge)
         edge, parent = find_nearest(virus_node, graph, blocked_edges_set)
