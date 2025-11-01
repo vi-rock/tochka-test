@@ -14,6 +14,16 @@ def build_graph(edges: list[tuple[str, str]]) -> dict[str, list[str]]:
     return graph
 
 
+def get_exit_edges(graph: dict[str, list[str]]) -> list[tuple[str, str]]:
+    exit_edges = []
+    for node, neighbors in graph.items():
+        if is_gateway(node):
+            for neighbor in neighbors:
+                if not is_gateway(neighbor):
+                    exit_edges.append((node, neighbor))
+    return sorted(exit_edges, key=lambda edge: (edge[0], edge[1]))
+
+
 def is_gateway(node: str) -> bool:
     return node.isupper()
 
@@ -52,7 +62,7 @@ def find_nearest(
                 min_distance = depth + 1
                 if target_gateway > neighbor or not target_gateway:
                     target_gateway = neighbor
-                    target_edge = (current, neighbor)
+                    target_edge = (neighbor, current)
                     parent[neighbor] = current
                     visited[neighbor] = depth + 1
             elif visited[neighbor] == -1:
@@ -63,34 +73,43 @@ def find_nearest(
     return target_edge, parent
 
 
+def backtrack_to_next(
+    start_node: str,
+    blocked_edges: list[tuple[str, str]],
+    exit_edges: list[tuple[str, str]],
+    graph: dict[str, list[str]],
+):
+    for edge in exit_edges:
+        if edge not in blocked_edges:
+            new_blocked_edges = blocked_edges + [edge]
+            if len(new_blocked_edges) == len(exit_edges):
+                return True, new_blocked_edges
+            target_edge, parent = find_nearest(start_node, graph, new_blocked_edges)
+            next_step = next_node(parent, target_edge[0], start_node)
+            if is_gateway(next_step):
+                continue
+
+            f, result = backtrack_to_next(
+                next_step, new_blocked_edges, exit_edges, graph
+            )
+            if f:
+                return True, result
+    return False, None
+
+
+def format_result(result: list[tuple[str, str]]):
+    formated_result = []
+    for edge in result:
+        formated_result.append(f"{edge[0]}-{edge[1]}")
+    return formated_result
+
+
 def solve(edges: list[tuple[str, str]]) -> list[str]:
-    """
-    Решение задачи об изоляции вируса
-
-    Args:
-        edges: список коридоров в формате (узел1, узел2)
-
-    Returns:
-        список отключаемых коридоров в формате "Шлюз-узел"
-    """
     graph = build_graph(edges)
-    blocked_edges_set = set()
-    blocked_edges = []
-    virus_node = "a"
-    while True:
-        edge, _ = find_nearest(virus_node, graph, blocked_edges_set)
-        if not edge:
-            break
-        blocked_edges_set.add(edge)
-        blocked_edges.append(edge)
-        edge, parent = find_nearest(virus_node, graph, blocked_edges_set)
-        if not edge:
-            break
-        virus_node = next_node(parent, edge[1], virus_node)
-    result = []
-    for edge in blocked_edges:
-        result.append(f"{edge[1]}-{edge[0]}")
-    return result
+    exit_edges = get_exit_edges(graph)
+
+    _, result = backtrack_to_next("a", [], exit_edges, graph)
+    return format_result(result)
 
 
 def main():
